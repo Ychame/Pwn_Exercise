@@ -2,19 +2,19 @@
 
 static int install_syscall_filter(void)
 {
+	setbuf(stdout, NULL);
 	struct sock_filter filter[] = 
 	{
 		/* Validate architecture. */
 		VALIDATE_ARCHITECTURE,
 		/* Grab the system call number. */
 		EXAMINE_SYSCALL,
+		BLOCK_X32_SYSCALL,
 		/* List allowed syscalls. */
-		ALLOW_SYSCALL(exit_group),
 		ALLOW_SYSCALL(exit),
+		ALLOW_SYSCALL(exit_group),
 		ALLOW_SYSCALL(read),
-		ALLOW_SYSCALL(lseek),
 		ALLOW_SYSCALL(open),
-		ALLOW_SYSCALL(close),
         ALLOW_SYSCALL(write),
 		KILL_PROCESS,
 	};
@@ -40,7 +40,7 @@ static int install_syscall_filter(void)
 failed:
 	if ( errno == EINVAL )
 	{
-		fprintf(stderr, "SECCOMP_FILTER is not available. :(\n");
+		printf("SECCOMP_FILTER is not available. :(\n");
 	}
 
 	return 1;
