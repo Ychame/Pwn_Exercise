@@ -1,3 +1,5 @@
+// [Changelog]
+// uaf1 -> off_by_null: Fix uaf, introduce off_by_one in read_buf()
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>

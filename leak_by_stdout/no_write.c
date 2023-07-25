@@ -1,5 +1,5 @@
 // [Changelog]
-// uaf1 -> uaf2: Delete write_chunk function
+// uaf1 -> no_write: Delete write_chunk function
 
 #include <stdint.h>
 #include <stdlib.h>

