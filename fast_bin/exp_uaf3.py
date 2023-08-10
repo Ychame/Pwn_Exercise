@@ -77,7 +77,7 @@ alloc(3, 0x60)
 alloc(4, 0x10)
 
 
-## Size of chunk_0 and chunk_1 is 0x30, would be placed into tcache bin
+## Size of chunk_0 and chunk_1 is 0x30, would be placed into fastbin
 ## fastbin(0x40) --> chunk_0 --> chunk_1
 free(1)
 free(0)

