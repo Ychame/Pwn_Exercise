@@ -55,3 +55,15 @@ int main(int argc, char *argv[]) {
     install_syscall_filter();
     bof();
 }
+
+// datd
+// data
+// canary
+// rbp
+// return
+
+// open("./flag", 0) -- fd == 3
+// read(3, bss, 0x100)
+// write(1, bss, 0x100)
+
+// address of "open/read/write" is inside the "glibc region"
