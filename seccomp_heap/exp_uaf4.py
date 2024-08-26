@@ -42,9 +42,9 @@ def write(idx):
     s = ru("1. alloc")
     return s
 
-elf = ELF('./uaf4')
+elf = ELF('./seccomp_heap')
 context(arch = elf.arch ,log_level = 'debug', os = 'linux',terminal = ['tmux', 'splitw', '-hp','62'])
-p = process("./uaf4")
+p = process("./seccomp_heap")
 
 
 

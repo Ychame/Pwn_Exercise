@@ -1,10 +1,10 @@
 CC=gcc
 CFLAGS=-g -Wall
 
-all: uaf4
+all: seccomp_heap_self_built
 
-uaf4: uaf4.c
-	$(CC) $(CFLAGS) -o uaf4 uaf4.c
+seccomp_heap_self_built: uaf4.c
+	$(CC) $(CFLAGS) -o seccomp_heap_self_built uaf4.c
 
 clean:
-	rm -f uaf4
+	rm -f seccomp_heap_self_built
