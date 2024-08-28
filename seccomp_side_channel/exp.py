@@ -15,6 +15,7 @@ ru      = lambda delims, drop=True  :p.recvuntil(delims, drop)
 uu32    = lambda data               :u32(data.ljust(4, '\0'))
 uu64    = lambda data               :u64(data.ljust(8, '\0'))
 lg = lambda name,data : p.success(name + ': \033[1;36m 0x%x \033[0m' % data)
+OKRED = '\033[91m'
 
 def debug(breakpoint=''):
     elf_base = int(os.popen('pmap {}| awk \x27{{print \x241}}\x27'.format(p.pid)).readlines()[1], 16) if elf.pie else 0
@@ -25,6 +26,7 @@ def debug(breakpoint=''):
 elf = ELF('./chall')
 context(arch = elf.arch, os = 'linux',terminal = ['tmux', 'splitw', '-hp','62'])
 p = process("./chall")
+
 
 
 def pwn(pos, char):
@@ -74,7 +76,7 @@ if __name__ == '__main__' :
             pwn(pos, mid)
             # p.interactive()
             s = time.time()
-            print(str(left) + " -- " + str(right) + " -- " + str(mid))
+            # print(str(left) + " -- " + str(right) + " -- " + str(mid))
             try:
                 p.recv(timeout = 0.05)
                 t = time.time()
@@ -84,10 +86,10 @@ if __name__ == '__main__' :
             except:
                 right = mid
         flag += chr(left)
-        info(flag)
+        print(OKRED+flag)
         if chr(left) == '}' :
             break
         pos = pos + 1
-    success(flag)
+    print(OKRED+flag)
     end = time.time()
     success("time:\t" + str(end - start) + "s")
